@@ -195,7 +195,128 @@
         timeLeft--;
         const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0');
         const secs = String(timeLeft % 60).padStart(2, '0');
-        timerVal.textContent = `${mins}:${secs}`;  if (timeLeft <= 0) endGame("TIME'S UP!"); }, 1000);  clearInterval(foodSpawner); foodSpawner = setInterval(() => { if (gameState !== 'PLAYING') return; const isHealthy = Math.random() < 0.70; const pool = isHealthy ? HEALTHY_ITEMS : UNHEALTHY_ITEMS; const picked = pool[Math.floor(Math.random() * pool.length)];  items.push({ type: picked.type, emoji: picked.emoji, radius: picked.radius, glow: picked.glow, bg: picked.bg, x: Math.random() * (canvas.width - 240) + 120, y: -50, vy: Math.random() * 2 + 4.5, vx: (Math.random() - 0.5) * 1.5 }); }, 1000); }  function endGame(reason) { gameState = 'WAITING'; clearInterval(gameTimer); clearInterval(foodSpawner);  screenTitle.innerHTML = `${reason}<br><span style="color:#facc15; font-size:44px;">TOTAL SCORE: ${score}</span>`; screenPrompt.innerHTML = "👍 NEXT PLAYER: SHOW BOTH HANDS THUMBS UP 👍"; overlay.style.display = 'flex'; }  let thumbsUpFrames = 0;  function onResults(results) { lastVideoFrame = results.image; const hands = results.multiHandLandmarks \vert{}\vert{} []; activeBaskets = [];  if (gameState === 'WAITING' && hands.length >= 2) { if (isThumbsUp(hands[0]) && isThumbsUp(hands[1])) { thumbsUpFrames++; if (thumbsUpFrames > 15) { thumbsUpFrames = 0; startGame(); } } else { thumbsUpFrames = 0; } }  hands.forEach(hand => { const palmCenter = hand[9]; activeBaskets.push({ x: palmCenter.x * canvas.width, y: palmCenter.y * canvas.height }); }); }  function render() { if (lastVideoFrame) { ctx.drawImage(lastVideoFrame, 0, 0, canvas.width, canvas.height); ctx.fillStyle = 'rgba(11, 15, 25, 0.45)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } else { ctx.clearRect(0, 0, canvas.width, canvas.height); }  activeBaskets.forEach(b => { ctx.save(); ctx.shadowBlur = 18; ctx.shadowColor = '#facc15'; ctx.font = '80px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('🧺', b.x, b.y); ctx.restore(); });  for (let i = popups.length - 1; i >= 0; i--) { const p = popups[i]; p.y -= 2.2; p.alpha -= 0.02;  ctx.save(); ctx.globalAlpha = Math.max(0, p.alpha); ctx.shadowBlur = 10; ctx.shadowColor = p.color; ctx.font = 'bold 36px sans-serif'; ctx.fillStyle = p.color; ctx.textAlign = 'center'; ctx.fillText(p.text, p.x, p.y); ctx.restore();  if (p.alpha <= 0) popups.splice(i, 1); }  if (gameState === 'PLAYING') { for (let i = items.length - 1; i >= 0; i--) { const it = items[i]; it.y += it.vy; it.x += it.vx;  ctx.save(); ctx.shadowBlur = 24; ctx.shadowColor = it.glow; ctx.beginPath(); ctx.arc(it.x, it.y, it.radius, 0, Math.PI * 2); ctx.fillStyle = it.bg; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = it.glow; ctx.stroke();  ctx.shadowBlur = 14; ctx.shadowColor = '#000000'; ctx.font = `${it.radius * 1.55}px sans-serif`;
+        timerVal.textContent = `${mins}:${secs}`;
+
+        if (timeLeft <= 0) endGame("TIME'S UP!");
+      }, 1000);
+
+      clearInterval(foodSpawner);
+      foodSpawner = setInterval(() => {
+        if (gameState !== 'PLAYING') return;
+        const isHealthy = Math.random() < 0.70;
+        const pool = isHealthy ? HEALTHY_ITEMS : UNHEALTHY_ITEMS;
+        const picked = pool[Math.floor(Math.random() * pool.length)];
+
+        items.push({
+          type: picked.type,
+          emoji: picked.emoji,
+          radius: picked.radius,
+          glow: picked.glow,
+          bg: picked.bg,
+          x: Math.random() * (canvas.width - 240) + 120,
+          y: -50,
+          vy: Math.random() * 2 + 4.5,
+          vx: (Math.random() - 0.5) * 1.5
+        });
+      }, 1000);
+    }
+
+    function endGame(reason) {
+      gameState = 'WAITING';
+      clearInterval(gameTimer);
+      clearInterval(foodSpawner);
+
+      screenTitle.innerHTML = `${reason}<br><span style="color:#facc15; font-size:44px;">TOTAL SCORE: ${score}</span>`;
+      screenPrompt.innerHTML = "👍 NEXT PLAYER: SHOW BOTH HANDS THUMBS UP 👍";
+      overlay.style.display = 'flex';
+    }
+
+    let thumbsUpFrames = 0;
+
+    function onResults(results) {
+      lastVideoFrame = results.image;
+      const hands = results.multiHandLandmarks || [];
+      activeBaskets = [];
+
+      if (gameState === 'WAITING' && hands.length >= 2) {
+        if (isThumbsUp(hands[0]) && isThumbsUp(hands[1])) {
+          thumbsUpFrames++;
+          if (thumbsUpFrames > 15) {
+            thumbsUpFrames = 0;
+            startGame();
+          }
+        } else {
+          thumbsUpFrames = 0;
+        }
+      }
+
+      hands.forEach(hand => {
+        const palmCenter = hand[9];
+        activeBaskets.push({
+          x: palmCenter.x * canvas.width,
+          y: palmCenter.y * canvas.height
+        });
+      });
+    }
+
+    function render() {
+      if (lastVideoFrame) {
+        ctx.drawImage(lastVideoFrame, 0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(11, 15, 25, 0.45)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+
+      activeBaskets.forEach(b => {
+        ctx.save();
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = '#facc15';
+        ctx.font = '80px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🧺', b.x, b.y);
+        ctx.restore();
+      });
+
+      for (let i = popups.length - 1; i >= 0; i--) {
+        const p = popups[i];
+        p.y -= 2.2;
+        p.alpha -= 0.02;
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = p.color;
+        ctx.font = 'bold 36px sans-serif';
+        ctx.fillStyle = p.color;
+        ctx.textAlign = 'center';
+        ctx.fillText(p.text, p.x, p.y);
+        ctx.restore();
+
+        if (p.alpha <= 0) popups.splice(i, 1);
+      }
+
+      if (gameState === 'PLAYING') {
+        for (let i = items.length - 1; i >= 0; i--) {
+          const it = items[i];
+          it.y += it.vy;
+          it.x += it.vx;
+
+          ctx.save();
+          ctx.shadowBlur = 24;
+          ctx.shadowColor = it.glow;
+          ctx.beginPath();
+          ctx.arc(it.x, it.y, it.radius, 0, Math.PI * 2);
+          ctx.fillStyle = it.bg;
+          ctx.fill();
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = it.glow;
+          ctx.stroke();
+
+          ctx.shadowBlur = 14;
+          ctx.shadowColor = '#000000';
+          ctx.font = `${it.radius * 1.55}px sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(it.emoji, it.x, it.y);
@@ -247,7 +368,6 @@
     });
     hands.onResults(onResults);
 
-    // Direct WebRTC Camera Initializer with Fallback
     async function startCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -258,7 +378,6 @@
 
         screenPrompt.textContent = "👍 SHOW BOTH HANDS THUMBS UP TO START 👍";
 
-        // Feed frames to MediaPipe
         async function processVideoFrame() {
           if (video.readyState >= 2) {
             await hands.send({ image: video });
