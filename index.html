@@ -124,18 +124,20 @@
     let activeBaskets = [];
     let lastVideoFrame = null;
 
+    // Solid Target Items
     const HEALTHY_ITEMS = [
-      { type: 'healthy', emoji: '🍎', size: 76 },
-      { type: 'healthy', emoji: '🥛', size: 76 },
-      { type: 'healthy', emoji: '🍌', size: 80 },
-      { type: 'healthy', emoji: '🥦', size: 80 }
+      { type: 'healthy', emoji: '🍎', size: 80, solidColor: '#ef4444' },
+      { type: 'healthy', emoji: '🥛', size: 80, solidColor: '#ffffff' },
+      { type: 'healthy', emoji: '🍌', size: 84, solidColor: '#eab308' },
+      { type: 'healthy', emoji: '🥦', size: 84, solidColor: '#22c55e' }
     ];
 
+    // Solid Hazard Items
     const UNHEALTHY_ITEMS = [
-      { type: 'unhealthy', emoji: '🍬', size: 72 },
-      { type: 'unhealthy', emoji: '🍰', size: 80 },
-      { type: 'unhealthy', emoji: '🍫', size: 76 },
-      { type: 'unhealthy', emoji: '🍩', size: 80 }
+      { type: 'unhealthy', emoji: '🍬', size: 76, solidColor: '#f43f5e' },
+      { type: 'unhealthy', emoji: '🍰', size: 84, solidColor: '#f472b6' },
+      { type: 'unhealthy', emoji: '🍫', size: 80, solidColor: '#78350f' },
+      { type: 'unhealthy', emoji: '🍩', size: 84, solidColor: '#d97706' }
     ];
 
     let audioCtx = null;
@@ -199,6 +201,7 @@
           type: picked.type,
           emoji: picked.emoji,
           size: picked.size,
+          solidColor: picked.solidColor,
           x: Math.random() * (canvas.width - 240) + 120,
           y: -50,
           vy: Math.random() * 2 + 4.5,
@@ -246,6 +249,7 @@
     }
 
     function render() {
+      // 1. Mirrored Camera Feed
       if (lastVideoFrame) {
         ctx.drawImage(lastVideoFrame, 0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'rgba(11, 15, 25, 0.35)';
@@ -254,16 +258,18 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
 
+      // 2. Draw Solid Basket 🧺
       activeBaskets.forEach(b => {
         ctx.save();
         ctx.globalAlpha = 1.0;
-        ctx.font = '82px sans-serif';
+        ctx.font = '86px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('🧺', b.x, b.y);
         ctx.restore();
       });
 
+      // 3. Floating Score Popups
       for (let i = popups.length - 1; i >= 0; i--) {
         const p = popups[i];
         p.y -= 2.2;
@@ -280,6 +286,7 @@
         if (p.alpha <= 0) popups.splice(i, 1);
       }
 
+      // 4. Draw Purely Solid Food Items (Zero circles, zero transparency)
       if (gameState === 'PLAYING') {
         for (let i = items.length - 1; i >= 0; i--) {
           const it = items[i];
@@ -291,12 +298,21 @@
           ctx.font = `${it.size}px sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
+
+          // Solid underlay stroke to guarantee zero translucency against camera
+          ctx.strokeStyle = it.solidColor;
+          ctx.lineWidth = 14;
+          ctx.lineJoin = 'round';
+          ctx.strokeText(it.emoji, it.x, it.y);
+
+          // Crisp emoji foreground
           ctx.fillText(it.emoji, it.x, it.y);
           ctx.restore();
 
+          // Basket Collision Check
           let caught = false;
           for (let b of activeBaskets) {
-            if (Math.hypot(b.x - it.x, b.y - it.y) < 68) {
+            if (Math.hypot(b.x - it.x, b.y - it.y) < 70) {
               caught = true;
               break;
             }
@@ -329,6 +345,7 @@
       requestAnimationFrame(render);
     }
 
+    // MediaPipe Hands setup
     const hands = new Hands({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
     });
@@ -340,6 +357,7 @@
     });
     hands.onResults(onResults);
 
+    // Reliable MediaPipe Camera Utility
     const camera = new Camera(video, {
       onFrame: async () => {
         await hands.send({ image: video });
