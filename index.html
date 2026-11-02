@@ -66,16 +66,6 @@
       color: #facc15;
       animation: pulse 1.5s infinite;
     }
-    #error-banner {
-      display: none;
-      background: #ef4444;
-      color: white;
-      padding: 12px 24px;
-      border-radius: 12px;
-      font-size: 20px;
-      margin-top: 15px;
-      max-width: 80%;
-    }
     @keyframes pulse {
       0% { transform: scale(1); }
       50% { transform: scale(1.05); }
@@ -100,12 +90,11 @@
     <p>🍎 🥛 🍌 🥦 <b>Collect Healthy Food</b> = +5 Points</p>
     <p>🍬 🍰 🍫 🍩 <b>Avoid Unhealthy Food</b> = Deducts 1 Life & -10 Points!</p>
     <p>⏱️ You have <b>2 minutes</b> and <b>5 lives</b>.</p>
-    <div id="screen-prompt" class="gesture-box">⏳ CONNECTING CAMERA...</div>
-    <div id="error-banner"></div>
+    <div id="screen-prompt" class="gesture-box">👍 SHOW BOTH HANDS THUMBS UP TO START 👍</div>
   </div>
 
   <div id="canvas-container">
-    <video id="camera-video" playsinline autoplay muted></video>
+    <video id="camera-video" playsinline></video>
     <canvas id="game-canvas"></canvas>
   </div>
 
@@ -119,7 +108,6 @@
     const overlay = document.getElementById('overlay-screen');
     const screenTitle = document.getElementById('screen-title');
     const screenPrompt = document.getElementById('screen-prompt');
-    const errorBanner = document.getElementById('error-banner');
 
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -137,17 +125,17 @@
     let lastVideoFrame = null;
 
     const HEALTHY_ITEMS = [
-      { type: 'healthy', emoji: '🍎', radius: 46, glow: '#22c55e', bg: 'rgba(34, 197, 94, 0.3)' },
-      { type: 'healthy', emoji: '🥛', radius: 46, glow: '#38bdf8', bg: 'rgba(56, 189, 248, 0.3)' },
-      { type: 'healthy', emoji: '🍌', radius: 48, glow: '#eab308', bg: 'rgba(234, 179, 8, 0.3)' },
-      { type: 'healthy', emoji: '🥦', radius: 48, glow: '#10b981', bg: 'rgba(16, 185, 129, 0.3)' }
+      { type: 'healthy', emoji: '🍎', size: 76 },
+      { type: 'healthy', emoji: '🥛', size: 76 },
+      { type: 'healthy', emoji: '🍌', size: 80 },
+      { type: 'healthy', emoji: '🥦', size: 80 }
     ];
 
     const UNHEALTHY_ITEMS = [
-      { type: 'unhealthy', emoji: '🍬', radius: 44, glow: '#f43f5e', bg: 'rgba(244, 63, 94, 0.35)' },
-      { type: 'unhealthy', emoji: '🍰', radius: 50, glow: '#ec4899', bg: 'rgba(236, 72, 153, 0.35)' },
-      { type: 'unhealthy', emoji: '🍫', radius: 46, glow: '#f97316', bg: 'rgba(249, 115, 22, 0.35)' },
-      { type: 'unhealthy', emoji: '🍩', radius: 50, glow: '#ef4444', bg: 'rgba(239, 68, 68, 0.35)' }
+      { type: 'unhealthy', emoji: '🍬', size: 72 },
+      { type: 'unhealthy', emoji: '🍰', size: 80 },
+      { type: 'unhealthy', emoji: '🍫', size: 76 },
+      { type: 'unhealthy', emoji: '🍩', size: 80 }
     ];
 
     let audioCtx = null;
@@ -210,9 +198,7 @@
         items.push({
           type: picked.type,
           emoji: picked.emoji,
-          radius: picked.radius,
-          glow: picked.glow,
-          bg: picked.bg,
+          size: picked.size,
           x: Math.random() * (canvas.width - 240) + 120,
           y: -50,
           vy: Math.random() * 2 + 4.5,
@@ -262,7 +248,7 @@
     function render() {
       if (lastVideoFrame) {
         ctx.drawImage(lastVideoFrame, 0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = 'rgba(11, 15, 25, 0.45)';
+        ctx.fillStyle = 'rgba(11, 15, 25, 0.35)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       } else {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -270,9 +256,8 @@
 
       activeBaskets.forEach(b => {
         ctx.save();
-        ctx.shadowBlur = 18;
-        ctx.shadowColor = '#facc15';
-        ctx.font = '80px sans-serif';
+        ctx.globalAlpha = 1.0;
+        ctx.font = '82px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('🧺', b.x, b.y);
@@ -286,8 +271,6 @@
 
         ctx.save();
         ctx.globalAlpha = Math.max(0, p.alpha);
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = p.color;
         ctx.font = 'bold 36px sans-serif';
         ctx.fillStyle = p.color;
         ctx.textAlign = 'center';
@@ -304,19 +287,8 @@
           it.x += it.vx;
 
           ctx.save();
-          ctx.shadowBlur = 24;
-          ctx.shadowColor = it.glow;
-          ctx.beginPath();
-          ctx.arc(it.x, it.y, it.radius, 0, Math.PI * 2);
-          ctx.fillStyle = it.bg;
-          ctx.fill();
-          ctx.lineWidth = 4;
-          ctx.strokeStyle = it.glow;
-          ctx.stroke();
-
-          ctx.shadowBlur = 14;
-          ctx.shadowColor = '#000000';
-          ctx.font = `${it.radius * 1.55}px sans-serif`;
+          ctx.globalAlpha = 1.0;
+          ctx.font = `${it.size}px sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(it.emoji, it.x, it.y);
@@ -324,7 +296,7 @@
 
           let caught = false;
           for (let b of activeBaskets) {
-            if (Math.hypot(b.x - it.x, b.y - it.y) < 70) {
+            if (Math.hypot(b.x - it.x, b.y - it.y) < 68) {
               caught = true;
               break;
             }
@@ -368,32 +340,15 @@
     });
     hands.onResults(onResults);
 
-    async function startCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
-        });
-        video.srcObject = stream;
-        await video.play();
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await hands.send({ image: video });
+      },
+      width: 640,
+      height: 480
+    });
+    camera.start();
 
-        screenPrompt.textContent = "👍 SHOW BOTH HANDS THUMBS UP TO START 👍";
-
-        async function processVideoFrame() {
-          if (video.readyState >= 2) {
-            await hands.send({ image: video });
-          }
-          requestAnimationFrame(processVideoFrame);
-        }
-        processVideoFrame();
-      } catch (err) {
-        console.error("Camera access error:", err);
-        screenPrompt.textContent = "⚠️ CAMERA BLOCKED OR UNAVAILABLE";
-        errorBanner.style.display = 'block';
-        errorBanner.innerHTML = `Please allow camera access in your browser bar. (Error: ${err.name || err.message})`;
-      }
-    }
-
-    startCamera();
     requestAnimationFrame(render);
 
     window.addEventListener('resize', () => {
