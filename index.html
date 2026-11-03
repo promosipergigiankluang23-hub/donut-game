@@ -124,7 +124,6 @@
     let activeBaskets = [];
     let lastVideoFrame = null;
 
-    // Solid Target Items
     const HEALTHY_ITEMS = [
       { type: 'healthy', emoji: '🍎', size: 80, solidColor: '#ef4444' },
       { type: 'healthy', emoji: '🥛', size: 80, solidColor: '#ffffff' },
@@ -132,7 +131,6 @@
       { type: 'healthy', emoji: '🥦', size: 84, solidColor: '#22c55e' }
     ];
 
-    // Solid Hazard Items
     const UNHEALTHY_ITEMS = [
       { type: 'unhealthy', emoji: '🍬', size: 76, solidColor: '#f43f5e' },
       { type: 'unhealthy', emoji: '🍰', size: 84, solidColor: '#f472b6' },
@@ -158,14 +156,16 @@
     const soundCollect = () => playAudio(620, 'sine', 0.12);
     const soundHurt = () => playAudio(130, 'sawtooth', 0.3);
 
+    // Forgiving gesture check: thumb tip is higher than wrist and finger joints
     function isThumbsUp(landmarks) {
-      return (
-        landmarks[4].y < landmarks[2].y - 0.08 &&
-        landmarks[8].y > landmarks[6].y &&
-        landmarks[12].y > landmarks[10].y &&
-        landmarks[16].y > landmarks[14].y &&
-        landmarks[20].y > landmarks[18].y
-      );
+      const thumbTip = landmarks[4];
+      const indexPip = landmarks[6];
+      const middlePip = landmarks[10];
+
+      const thumbPointingUp = thumbTip.y < landmarks[2].y - 0.04;
+      const thumbAboveFingers = thumbTip.y < indexPip.y && thumbTip.y < middlePip.y;
+
+      return thumbPointingUp && thumbAboveFingers;
     }
 
     function startGame() {
@@ -227,10 +227,11 @@
       const hands = results.multiHandLandmarks || [];
       activeBaskets = [];
 
+      // Requires only 8 frames (~0.25 sec) of both hands thumbs-up to launch
       if (gameState === 'WAITING' && hands.length >= 2) {
         if (isThumbsUp(hands[0]) && isThumbsUp(hands[1])) {
           thumbsUpFrames++;
-          if (thumbsUpFrames > 15) {
+          if (thumbsUpFrames > 8) {
             thumbsUpFrames = 0;
             startGame();
           }
@@ -249,7 +250,6 @@
     }
 
     function render() {
-      // 1. Mirrored Camera Feed
       if (lastVideoFrame) {
         ctx.drawImage(lastVideoFrame, 0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'rgba(11, 15, 25, 0.35)';
@@ -258,7 +258,6 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
 
-      // 2. Draw Solid Basket 🧺
       activeBaskets.forEach(b => {
         ctx.save();
         ctx.globalAlpha = 1.0;
@@ -269,7 +268,6 @@
         ctx.restore();
       });
 
-      // 3. Floating Score Popups
       for (let i = popups.length - 1; i >= 0; i--) {
         const p = popups[i];
         p.y -= 2.2;
@@ -286,7 +284,6 @@
         if (p.alpha <= 0) popups.splice(i, 1);
       }
 
-      // 4. Draw Purely Solid Food Items (Zero circles, zero transparency)
       if (gameState === 'PLAYING') {
         for (let i = items.length - 1; i >= 0; i--) {
           const it = items[i];
@@ -299,20 +296,17 @@
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
 
-          // Solid underlay stroke to guarantee zero translucency against camera
           ctx.strokeStyle = it.solidColor;
           ctx.lineWidth = 14;
           ctx.lineJoin = 'round';
           ctx.strokeText(it.emoji, it.x, it.y);
 
-          // Crisp emoji foreground
           ctx.fillText(it.emoji, it.x, it.y);
           ctx.restore();
 
-          // Basket Collision Check
           let caught = false;
           for (let b of activeBaskets) {
-            if (Math.hypot(b.x - it.x, b.y - it.y) < 70) {
+            if (Math.hypot(b.x - it.x, b.y - it.y) < 75) {
               caught = true;
               break;
             }
@@ -330,49 +324,4 @@
               scoreVal.textContent = score;
               livesVal.textContent = '❤️'.repeat(Math.max(0, lives));
               soundHurt();
-              popups.push({ text: '-10', x: it.x, y: it.y, alpha: 1.0, color: '#ef4444' });
-
-              if (lives <= 0) endGame("GAME OVER!");
-            }
-            items.splice(i, 1);
-            continue;
-          }
-
-          if (it.y > canvas.height + 70) items.splice(i, 1);
-        }
-      }
-
-      requestAnimationFrame(render);
-    }
-
-    // MediaPipe Hands setup
-    const hands = new Hands({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-    });
-    hands.setOptions({
-      maxNumHands: 2,
-      modelComplexity: 0,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
-    hands.onResults(onResults);
-
-    // Reliable MediaPipe Camera Utility
-    const camera = new Camera(video, {
-      onFrame: async () => {
-        await hands.send({ image: video });
-      },
-      width: 640,
-      height: 480
-    });
-    camera.start();
-
-    requestAnimationFrame(render);
-
-    window.addEventListener('resize', () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    });
-  </script>
-</body>
-</html>
+              popups.push({ text: '-10', x: it.x, y:
